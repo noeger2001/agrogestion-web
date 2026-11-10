@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#14532d" />
+  <meta name="description" content="AgroGestión: control local y offline de agricultura, pollos, inventario, ventas, caja y jornales." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="AgroGestión" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <title>AgroGestión</title>
+  <style>
+    :root {
+      --green-950:#052e16; --green-900:#14532d; --green-800:#166534; --green-700:#15803d;
+      --green-600:#16a34a; --green-100:#dcfce7; --green-50:#f0fdf4;
+      --amber:#d97706; --red:#b91c1c; --blue:#1d4ed8;
+      --bg:#f4f7f4; --surface:#ffffff; --text:#172019; --muted:#667068; --line:#dce4dd;
+      --shadow:0 7px 24px rgba(20,83,45,.11); --radius:18px;
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+    body { overscroll-behavior:none; }
+    button,input,select,textarea { font:inherit; }
+    button { cursor:pointer; }
+    .hidden { display:none !important; }
+    #app { min-height:100vh; padding-bottom:86px; }
+    .topbar { position:sticky; top:0; z-index:20; color:#fff; padding:calc(14px + env(safe-area-inset-top)) 18px 16px; background:linear-gradient(135deg,var(--green-950),var(--green-700)); box-shadow:0 4px 20px rgba(5,46,22,.25); }
+    .topbar-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .brand { display:flex; align-items:center; gap:11px; min-width:0; }
+    .brand-mark { width:42px; height:42px; display:grid; place-items:center; border-radius:14px; background:rgba(255,255,255,.15); font-size:25px; }
+    .brand h1 { margin:0; font-size:20px; line-height:1.1; letter-spacing:.1px; }
+    .brand small { display:block; color:#d8fbe4; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .icon-btn { width:42px; height:42px; display:grid; place-items:center; border:0; border-radius:14px; background:rgba(255,255,255,.14); color:#fff; font-size:20px; }
+    .top-actions { display:flex; align-items:center; gap:8px; }
+    .install-card { margin:12px 0 0; padding:15px; border-radius:18px; background:#ecfdf5; border:1px solid #a7f3d0; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .install-card strong { display:block; font-size:14px; color:#065f46; }
+    .install-card small { display:block; margin-top:4px; color:#47725d; line-height:1.4; }
+    .install-card button { white-space:nowrap; }
+    .storage-grid { display:grid; grid-template-columns:1fr; gap:8px; margin:10px 0; }
+    .storage-line { padding:10px 12px; border-radius:12px; background:#f5f8f5; border:1px solid var(--line); font-size:12px; display:flex; justify-content:space-between; gap:12px; }
+    .storage-line span { color:var(--muted); }
+    .file-picker { display:none; }
+    .loading { min-height:100vh; display:grid; place-items:center; padding:24px; text-align:center; }
+    .loading .spinner { width:42px; height:42px; margin:0 auto 14px; border:4px solid #d1fae5; border-top-color:var(--green-700); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .content { max-width:920px; margin:auto; padding:18px 14px 28px; }
+    .hero { position:relative; overflow:hidden; border-radius:24px; color:white; padding:20px; background:linear-gradient(135deg,#166534,#22c55e); box-shadow:var(--shadow); }
+    .hero:after { content:""; position:absolute; width:160px; height:160px; border-radius:50%; right:-50px; top:-70px; background:rgba(255,255,255,.12); }
+    .hero .eyebrow { opacity:.85; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.1px; }
+    .hero .amount { font-size:34px; font-weight:850; margin:5px 0 3px; }
+    .hero .sub { font-size:13px; opacity:.9; }
+    .backup-pill { display:inline-flex; gap:7px; align-items:center; margin-top:14px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.15); font-size:12px; font-weight:650; }
+    .section-title { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:22px 2px 10px; }
+    .section-title h2 { font-size:16px; margin:0; }
+    .section-title button { border:0; background:transparent; color:var(--green-700); font-weight:750; padding:6px; }
+    .metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .metric { min-height:102px; padding:14px; border-radius:var(--radius); background:var(--surface); border:1px solid var(--line); box-shadow:0 3px 14px rgba(17,57,29,.045); }
+    .metric .label { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); }
+    .metric .value { margin-top:8px; font-size:20px; font-weight:820; }
+    .metric .note { margin-top:5px; color:var(--muted); font-size:11px; }
+    .metric.danger .value{color:var(--red)} .metric.good .value{color:var(--green-700)} .metric.warn .value{color:var(--amber)}
+    .quick-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; }
+    .quick { min-height:82px; border:1px solid var(--line); border-radius:17px; background:var(--surface); color:var(--text); padding:10px 5px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; font-weight:700; font-size:11px; }
+    .quick .qicon { width:35px; height:35px; border-radius:12px; display:grid; place-items:center; background:var(--green-100); font-size:19px; }
+    .status-card { padding:15px; border-radius:var(--radius); background:var(--surface); border:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .status-card strong { display:block; font-size:14px; } .status-card small { color:var(--muted); }
+    .module-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .module-card { border:1px solid var(--line); border-radius:20px; background:var(--surface); padding:16px; min-height:124px; text-align:left; color:var(--text); box-shadow:0 3px 13px rgba(17,57,29,.04); }
+    .module-card .micon { width:43px;height:43px;border-radius:14px;display:grid;place-items:center;background:var(--green-100);font-size:23px;margin-bottom:10px; }
+    .module-card strong { display:block; font-size:14px; } .module-card small { display:block; margin-top:5px; color:var(--muted); line-height:1.35; }
+    .page-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .back { width:42px;height:42px;border:1px solid var(--line);border-radius:14px;background:var(--surface);font-size:19px; }
+    .page-head h2 { margin:0; font-size:21px; } .page-head p { margin:3px 0 0; color:var(--muted);font-size:12px; }
+    .toolbar { display:flex; gap:8px; margin:12px 0; }
+    .search { flex:1; min-width:0; padding:12px 13px; border:1px solid var(--line); border-radius:14px; background:var(--surface); outline:none; }
+    .primary { border:0; border-radius:14px; background:var(--green-700); color:#fff; padding:11px 14px; font-weight:760; box-shadow:0 4px 12px rgba(21,128,61,.22); }
+    .secondary { border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--text); padding:11px 14px; font-weight:700; }
+    .danger-btn { border:1px solid #fecaca; background:#fff1f2; color:var(--red); border-radius:12px; padding:8px 10px; font-weight:750; }
+    .list { display:flex; flex-direction:column; gap:9px; }
+    .row-card { background:var(--surface); border:1px solid var(--line); border-radius:17px; padding:14px; }
+    .row-top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+    .row-card h3 { margin:0;font-size:15px; } .row-card p { margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.45; }
+    .row-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .chip { display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:5px 8px;background:var(--green-50);color:var(--green-900);font-size:10px;font-weight:720; }
+    .chip.gray{background:#f1f5f2;color:#536057}.chip.red{background:#fee2e2;color:#991b1b}.chip.amber{background:#fef3c7;color:#92400e}.chip.blue{background:#dbeafe;color:#1e40af}
+    .row-actions { margin-top:12px; display:flex; gap:7px; justify-content:flex-end; }
+    .row-actions button { border:1px solid var(--line); background:#fff; border-radius:11px; padding:7px 10px; font-size:11px;font-weight:720; }
+    .empty { text-align:center; padding:44px 16px; border:1px dashed #bdc9c0; border-radius:20px; background:rgba(255,255,255,.55); }
+    .empty .eicon { font-size:42px; } .empty h3{margin:10px 0 5px}.empty p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+    .bottom { position:fixed; z-index:30; bottom:0; left:0; right:0; height:72px; padding-bottom:env(safe-area-inset-bottom); background:rgba(255,255,255,.97); border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); box-shadow:0 -5px 22px rgba(5,46,22,.07); }
+    .nav { border:0;background:transparent;color:#6f7971;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:650; }
+    .nav span:first-child { font-size:21px; line-height:1; } .nav.active{color:var(--green-700)}
+    .modal-wrap { position:fixed; z-index:100; inset:0; background:rgba(5,25,12,.55); display:flex; align-items:flex-end; justify-content:center; }
+    .modal { width:100%; max-width:720px; max-height:93vh; overflow:auto; border-radius:24px 24px 0 0; background:var(--surface); padding:18px 16px calc(22px + env(safe-area-inset-bottom)); box-shadow:0 -10px 40px rgba(0,0,0,.22); }
+    .modal-head { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px; }
+    .modal-head h2{margin:0;font-size:19px}.close{width:38px;height:38px;border:0;border-radius:12px;background:#edf2ee;font-size:20px}
+    .form-grid { display:grid; grid-template-columns:1fr; gap:12px; }
+    label.field { display:block; } label.field span{display:block;margin:0 0 6px 2px;font-size:12px;font-weight:750;color:#48534b}
+    input,select,textarea { width:100%; border:1px solid #cfd9d1; border-radius:13px; padding:12px 13px; background:#fff; color:var(--text); outline:none; }
+    input:focus,select:focus,textarea:focus{border-color:var(--green-600);box-shadow:0 0 0 3px rgba(22,163,74,.12)}
+    textarea{min-height:88px;resize:vertical}.hint{font-size:10px;color:var(--muted);margin:5px 2px 0}
+    .modal-actions { position:sticky;bottom:0;display:flex;gap:9px;margin-top:18px;padding-top:12px;background:linear-gradient(transparent 0,#fff 22%); }
+    .modal-actions button{flex:1;min-height:46px}
+    .report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.report-card{padding:15px;border-radius:17px;border:1px solid var(--line);background:#fff}.report-card small{color:var(--muted)}.report-card strong{display:block;margin-top:7px;font-size:21px}
+    .chart { margin-top:15px; padding:15px; border-radius:18px; background:#fff; border:1px solid var(--line); }
+    .bar-row{display:grid;grid-template-columns:85px 1fr 70px;gap:8px;align-items:center;margin:11px 0;font-size:11px}.bar-track{height:11px;border-radius:99px;background:#e7eee8;overflow:hidden}.bar-fill{height:100%;background:linear-gradient(90deg,var(--green-700),#4ade80);border-radius:99px}
+    .notice { padding:13px 14px;border-radius:14px;background:#fffbeb;border:1px solid #fde68a;color:#78350f;font-size:12px;line-height:1.5;margin:10px 0; }
+    .success { background:#ecfdf5;border-color:#a7f3d0;color:#065f46; }
+    .backup-box{padding:16px;border:1px solid var(--line);border-radius:18px;background:#fff;margin-bottom:12px}.backup-box h3{margin:0 0 6px}.backup-box p{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.5}
+    .backup-text{min-height:180px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px}
+    #toast { position:fixed;z-index:200;left:50%;bottom:92px;transform:translateX(-50%) translateY(30px);opacity:0;pointer-events:none;max-width:90%;background:#102517;color:#fff;border-radius:13px;padding:11px 15px;box-shadow:0 8px 28px rgba(0,0,0,.28);font-size:12px;transition:.24s; }
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .lock { position:fixed;inset:0;z-index:300;background:linear-gradient(150deg,var(--green-950),var(--green-700));display:flex;align-items:center;justify-content:center;padding:24px;color:#fff; }
+    .lock-card{width:100%;max-width:360px;text-align:center}.lock-logo{font-size:58px}.lock h1{margin:8px 0 3px}.lock p{margin:0 0 20px;color:#d8fbe4}.pin-display{display:flex;justify-content:center;gap:12px;margin:18px}.dot{width:13px;height:13px;border-radius:50%;border:2px solid #fff}.dot.filled{background:#fff}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.key{aspect-ratio:1.35;border:1px solid rgba(255,255,255,.2);border-radius:18px;background:rgba(255,255,255,.1);color:#fff;font-size:21px;font-weight:800}.key:active{background:rgba(255,255,255,.25)}
+    @media(min-width:650px){.metric-grid{grid-template-columns:repeat(4,1fr)}.module-grid{grid-template-columns:repeat(3,1fr)}.form-grid.two{grid-template-columns:repeat(2,1fr)}.modal{border-radius:24px;margin-bottom:18px;max-height:88vh}.modal-wrap{align-items:center;padding:20px}.report-grid{grid-template-columns:repeat(4,1fr)}}
+  </style>
+</head>
+<body>
+<div id="app"><div class="loading"><div><div class="spinner"></div><strong>Abriendo AgroGestión…</strong><p style="color:#667068;font-size:13px">Cargando datos locales</p></div></div></div>
+<div id="modalRoot"></div>
+<div id="toast"></div>
+<div id="lockRoot"></div>
+<script>
+window.onerror = function(message, source, line, column) {
+  try {
+    document.body.innerHTML = '<div style="font-family:sans-serif;padding:24px"><h2>AgroGestión no pudo iniciar</h2><p>' +
+      String(message) + '</p><p style="color:#666">Línea ' + line + ':' + column + '</p></div>';
+  } catch (_) {}
+  return false;
+};
+</script>
+<script>
+(() => {
+  'use strict';
+  const LEGACY_STORAGE_KEY='agrogestion_state_v1';
+  const LEGACY_RECOVERY_KEY='agrogestion_recovery_v1';
+  const DB_NAME='agrogestion_web_pwa';
+  const DB_VERSION=1;
+  const DB_STORE='snapshots';
+  const VERSION='1.0.0 PWA';
+  const money = n => 'S/ ' + Number(n||0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const num = n => Number(String(n == null ? 0 : n).replace(',','.'))||0;
+  const today = () => new Date().toISOString().slice(0,10);
+  const uid = () => (window.crypto && typeof window.crypto.randomUUID === 'function' ? window.crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const fmtDate = d => { if(!d)return 'Sin fecha'; const p=d.split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:d; };
+  const nowIso=()=>new Date().toISOString();
+  const baseState=()=>({
+    version:1, createdAt:nowIso(), updatedAt:nowIso(),
+    settings:{businessName:'AgroGestión', owner:'Noe', currency:'PEN', pin:'', telegramToken:'',telegramChatId:'',demoLoaded:false},
+    accounts:[
+      {id:uid(),name:'Efectivo',type:'EFECTIVO',initial:0,active:true},
+      {id:uid(),name:'Yape',type:'YAPE',initial:0,active:true},
+      {id:uid(),name:'Plin',type:'PLIN',initial:0,active:true},
+      {id:uid(),name:'Cuenta bancaria',type:'BANCO',initial:0,active:true}
+    ],
+    terceros:[], terrenos:[], campanas:[], aplicaciones:[], cosechas:[], pollos:[], compras:[], ventas:[], inventario:[], movimientos:[], trabajadores:[], jornales:[], caja:[], cuentasCobrar:[], cuentasPagar:[], prestamos:[], backups:[]
+  });
+  let state=baseState();
+  let current='home';
+  let previous='home';
+  let searchText='';
+  let unlocked=true;
+  let storageBackend='IndexedDB';
+  let storagePersistent=false;
+  let deferredInstallPrompt=null;
+  let lastPersistedSnapshot='';
+  let lastQueuedSnapshot='';
+  let saveQueue=Promise.resolve();
+  let dbPromise=null;
+
+  function clone(value){ return JSON.parse(JSON.stringify(value)); }
+  function openDb(){
+    if(dbPromise)return dbPromise;
+    dbPromise=new Promise((resolve,reject)=>{
+      if(!('indexedDB' in window)){reject(new Error('IndexedDB no disponible'));return;}
+      const request=indexedDB.open(DB_NAME,DB_VERSION);
+      request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE,{keyPath:'id'});};
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error||new Error('No se pudo abrir IndexedDB'));
+      request.onblocked=()=>reject(new Error('IndexedDB está bloqueado por otra pestaña'));
+    });
+    return dbPromise;
+  }
+  async function idbRead(id){
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readonly');const req=tx.objectStore(DB_STORE).get(id);req.onsuccess=()=>resolve(req.result?req.result.value:null);req.onerror=()=>reject(req.error);});
+  }
+  async function idbWrite(id,value){
+    const db=await openDb();
+    const safe=clone(value);
+    return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).put({id,value:safe,updatedAt:nowIso()});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Escritura cancelada'));});
+  }
+  async function readSnapshot(id){
+    if(storageBackend==='IndexedDB')return idbRead(id);
+    const key=id==='main'?LEGACY_STORAGE_KEY:LEGACY_RECOVERY_KEY;
+    const raw=localStorage.getItem(key);return raw?JSON.parse(raw):null;
+  }
+  async function writeSnapshot(id,value){
+    if(storageBackend==='IndexedDB')return idbWrite(id,value);
+    const key=id==='main'?LEGACY_STORAGE_KEY:LEGACY_RECOVERY_KEY;
+    localStorage.setItem(key,JSON.stringify(value));
+  }
+  async function loadState(){
+    let loaded=null;
+    try{loaded=await idbRead('main');}
+    catch(e){storageBackend='localStorage';}
+    if(!loaded){
+      try{const raw=localStorage.getItem(LEGACY_STORAGE_KEY);if(raw)loaded=JSON.parse(raw);}catch(e){}
+    }
+    const migrated=migrate(loaded||baseState());
+    lastPersistedSnapshot=JSON.stringify(migrated);
+    lastQueuedSnapshot=lastPersistedSnapshot;
+    try{await writeSnapshot('main',migrated);}catch(e){}
+    return migrated;
+  }
+  function migrate(s){ const b=baseState(); return {...b,...s,settings:{...b.settings,...(s.settings||{})},accounts:Array.isArray(s.accounts)&&s.accounts.length?s.accounts:b.accounts}; }
+  function save(message){
+    state.updatedAt=nowIso();
+    const next=clone(state);
+    const nextSnapshot=JSON.stringify(next);
+    const previous=lastQueuedSnapshot?JSON.parse(lastQueuedSnapshot):clone(state);
+    lastQueuedSnapshot=nextSnapshot;
+    saveQueue=saveQueue.then(async()=>{await writeSnapshot('recovery',previous);await writeSnapshot('main',next);lastPersistedSnapshot=nextSnapshot;}).catch(e=>{console.error(e);toast('No se pudo guardar en el dispositivo');});
+    if(message)toast(message); render(); return true;
+  }
+  function active(arr){return (arr||[]).filter(x=>!x.deleted&&!x.cancelled)}
+  function accountBalance(id){
+    const a=state.accounts.find(x=>x.id===id); let total=num(a ? a.initial : 0);
+    active(state.caja).forEach(m=>{ if(m.type==='INGRESO'&&m.accountId===id)total+=num(m.amount); if(m.type==='EGRESO'&&m.accountId===id)total-=num(m.amount); if(m.type==='TRANSFERENCIA'){if(m.fromAccountId===id)total-=num(m.amount);if(m.toAccountId===id)total+=num(m.amount);} });
+    return total;
+  }
+  function metrics(){
+    const cash=state.accounts.filter(a=>a.active).reduce((s,a)=>s+accountBalance(a.id),0);
+    const receivable=active(state.cuentasCobrar).reduce((s,x)=>s+Math.max(0,num(x.amount)-num(x.paid)),0);
+    const payable=active(state.cuentasPagar).reduce((s,x)=>s+Math.max(0,num(x.amount)-num(x.paid)),0);
+    const loans=active(state.prestamos).reduce((s,x)=>s+Math.max(0,num(x.balance == null ? x.capital : x.balance)),0);
+    const inv=active(state.inventario).reduce((s,x)=>s+Math.max(0,num(x.quantity))*num(x.unitCost),0);
+    const month=today().slice(0,7);
+    const sales=active(state.ventas).filter(x=>(x.date||'').startsWith(month)).reduce((s,x)=>s+num(x.total),0);
+    const expenses=active(state.caja).filter(x=>x.type==='EGRESO'&&(x.date||'').startsWith(month)).reduce((s,x)=>s+num(x.amount),0);
+    return {cash,receivable,payable,loans,inv,sales,expenses,profit:sales-expenses};
+  }
+  const modules=[
+    ['terrenos','🌱','Terrenos','Propios y alquilados'],['campanas','🌾','Campañas','Planificación y costos'],['aplicaciones','🧪','Aplicaciones','Fertilizantes y controles'],['cosechas','🧺','Cosechas','Producción e ingreso a stock'],
+    ['pollos','🐔','Lotes avícolas','Control financiero y productivo'],['compras','🛒','Compras','Contado, crédito y lotes'],['ventas','💰','Ventas','Contado, crédito y mixtas'],['inventario','📦','Inventario','Stock por producto y lote'],
+    ['terceros','🤝','Clientes / proveedores','Historial comercial'],['trabajadores','👷','Trabajadores','Personal eventual'],['jornales','🧾','Jornales','Horas, tareas y saldos'],['caja','🏦','Caja y cuentas','Efectivo, Yape, Plin y banco'],
+    ['cuentasCobrar','📥','Por cobrar','Créditos de clientes'],['cuentasPagar','📤','Por pagar','Deudas con proveedores'],['prestamos','🏛️','Préstamos','Capital, interés y cuotas'],['reportes','📊','Reportes','Resultados del negocio'],
+    ['backups','☁️','Respaldos','Copiar y restaurar datos'],['configuracion','⚙️','Configuración','Seguridad y datos maestros']
+  ];
+  const defs={
+    terceros:{title:'Clientes y proveedores',icon:'🤝',desc:'Terceros del negocio',fields:[
+      ['name','Nombre o razón social','text',true],['role','Tipo','select',true,['CLIENTE','PROVEEDOR','AMBOS']],['document','DNI / RUC','text'],['phone','Teléfono','tel'],['address','Dirección','text'],['notes','Observaciones','textarea']
+    ],summary:x=>x.role,details:x=>[x.document,x.phone].filter(Boolean).join(' · ')},
+    terrenos:{title:'Terrenos',icon:'🌱',desc:'Propios y alquilados',fields:[
+      ['name','Nombre del terreno','text',true],['owner','Propietario','text'],['type','Tipo','select',true,['PROPIO','ALQUILADO']],['location','Ubicación','text'],['area','Área total','number',true],['areaUnit','Unidad','select',true,['ha','m²']],['rentStart','Inicio de alquiler','date'],['rentEnd','Fin de alquiler','date'],['rentPrice','Precio de alquiler','number'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.area||0} ${x.areaUnit||'ha'} · ${x.type}`,details:x=>x.location},
+    campanas:{title:'Campañas agrícolas',icon:'🌾',desc:'Cultivo, área y ciclo',fields:[
+      ['code','Código','text',true],['crop','Cultivo','text',true],['landId','Terreno','entitySelect',true,'terrenos'],['area','Área sembrada (ha)','number',true],['startDate','Fecha de inicio','date',true],['endDate','Fecha prevista de fin','date'],['status','Estado','select',true,['PLANIFICADA','ACTIVA','COSECHA','FINALIZADA','CANCELADA']],['budget','Presupuesto','number'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.crop} · ${x.area} ha`,details:x=>`${fmtDate(x.startDate)} · ${x.status}`},
+    aplicaciones:{title:'Aplicaciones agrícolas',icon:'🧪',desc:'Insumos aplicados al campo',fields:[
+      ['date','Fecha','date',true],['campaignId','Campaña','entitySelect',true,'campanas'],['type','Tipo','select',true,['FERTILIZANTE','HERBICIDA','FUNGICIDA','PESTICIDA','INSECTICIDA','OTRO']],['product','Producto','text',true],['quantity','Cantidad','number'],['unit','Unidad','select',false,['kg','litros','unidades','sacos']],['dose','Dosis','text'],['appliedArea','Área aplicada (ha)','number'],['cost','Costo total','number'],['worker','Trabajador / responsable','text'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.type} · ${x.product}`,details:x=>`${fmtDate(x.date)} · ${money(x.cost)}`},
+    cosechas:{title:'Cosechas',icon:'🧺',desc:'Producción por campaña',fields:[
+      ['date','Fecha','date',true],['campaignId','Campaña','entitySelect',true,'campanas'],['product','Producto','text',true],['quantity','Cantidad','number',true],['unit','Unidad','select',true,['kg','toneladas','sacos','unidades']],['netKg','Kilogramos netos','number'],['loss','Merma (kg)','number'],['unitCost','Costo estimado por kg','number'],['destination','Destino','select',true,['INVENTARIO','VENTA_DIRECTA']],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.product} · ${x.quantity} ${x.unit}`,details:x=>`${fmtDate(x.date)} · Merma ${x.loss||0} kg`},
+    pollos:{title:'Lotes avícolas',icon:'🐔',desc:'Crianza y costos de pollos',fields:[
+      ['code','Código de lote','text',true],['entryDate','Fecha de ingreso','date',true],['initialBirds','Pollitos iniciales','number',true],['supplier','Proveedor','text'],['unitCost','Costo por pollito','number'],['status','Estado','select',true,['PLANIFICADO','ACTIVO','PROCESAMIENTO','FINALIZADO','CANCELADO']],['deadBirds','Mortalidad acumulada','number'],['producedKg','Kg producidos','number'],['extraCosts','Otros costos acumulados','number'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.initialBirds} aves · ${x.status}`,details:x=>`Mortalidad: ${x.deadBirds||0} · ${fmtDate(x.entryDate)}`},
+    compras:{title:'Compras',icon:'🛒',desc:'Compras y lotes comerciales',fields:[
+      ['date','Fecha','date',true],['partyId','Proveedor','entitySelect',false,'terceros'],['product','Producto / concepto','text',true],['quantity','Cantidad','number'],['unit','Unidad','select',false,['kg','toneladas','sacos','unidades','litros']],['unitPrice','Precio unitario','number'],['extraCosts','Transporte y otros costos','number'],['paid','Pagado ahora','number'],['accountId','Cuenta de pago','accountSelect'],['createInventory','Ingresar a inventario','select',true,['SÍ','NO']],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.product} · ${x.quantity||0} ${x.unit||''}`,details:x=>`${fmtDate(x.date)} · Total ${money(x.total)}`},
+    ventas:{title:'Ventas',icon:'💰',desc:'Ventas, cobros y crédito',fields:[
+      ['date','Fecha','date',true],['partyId','Cliente','entitySelect',false,'terceros'],['product','Producto','text',true],['inventoryId','Lote de inventario','entitySelect',false,'inventario'],['quantity','Cantidad','number',true],['unit','Unidad','select',true,['kg','toneladas','sacos','unidades']],['unitPrice','Precio unitario','number',true],['paid','Cobrado ahora','number'],['accountId','Cuenta de cobro','accountSelect'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.product} · ${x.quantity} ${x.unit}`,details:x=>`${fmtDate(x.date)} · ${money(x.total)}`},
+    inventario:{title:'Inventario por lotes',icon:'📦',desc:'Stock y costo individual',fields:[
+      ['code','Código de lote','text',true],['product','Producto','text',true],['quantity','Stock actual','number',true],['unit','Unidad','select',true,['kg','toneladas','sacos','unidades','litros']],['unitCost','Costo unitario','number',true],['origin','Origen','select',true,['COMPRA','COSECHA','PRODUCCIÓN','AJUSTE']],['date','Fecha de ingreso','date'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.quantity} ${x.unit} · ${money(x.unitCost)}/${x.unit}`,details:x=>`${x.origin} · Valor ${money(num(x.quantity)*num(x.unitCost))}`},
+    trabajadores:{title:'Trabajadores',icon:'👷',desc:'Personal y forma de pago',fields:[
+      ['name','Nombre completo','text',true],['document','DNI','text'],['phone','Teléfono','tel'],['defaultMode','Pago habitual','select',true,['POR_HORA','POR_DÍA','POR_TAREA','POR_KG','POR_SACO','POR_UNIDAD','MONTO_FIJO']],['defaultRate','Tarifa habitual','number'],['active','Estado','select',true,['ACTIVO','INACTIVO']],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.defaultMode} · ${money(x.defaultRate)}`,details:x=>[x.document,x.phone,x.active].filter(Boolean).join(' · ')},
+    jornales:{title:'Jornales',icon:'🧾',desc:'Trabajo, adelantos y saldos',fields:[
+      ['date','Fecha','date',true],['workerId','Trabajador','entitySelect',true,'trabajadores'],['projectType','Proyecto','select',true,['CAMPAÑA','LOTE_AVÍCOLA','GENERAL']],['projectId','Campaña (opcional)','entitySelect',false,'campanas'],['activity','Actividad','text',true],['paymentMode','Modalidad','select',true,['POR_HORA','POR_DÍA','POR_TAREA','POR_KG','POR_SACO','POR_UNIDAD','MONTO_FIJO']],['quantity','Cantidad','number',true],['rate','Tarifa','number',true],['advance','Adelanto','number'],['paid','Pago adicional','number'],['accountId','Cuenta de pago','accountSelect'],['notes','Observaciones','textarea']
+    ],summary:x=>`${nameOf('trabajadores',x.workerId)} · ${x.activity}`,details:x=>`${fmtDate(x.date)} · Total ${money(x.total)} · Saldo ${money(x.balance)}`},
+    caja:{title:'Caja y cuentas',icon:'🏦',desc:'Ingresos, egresos y transferencias',fields:[
+      ['date','Fecha','date',true],['type','Tipo','select',true,['INGRESO','EGRESO','TRANSFERENCIA']],['category','Categoría / concepto','text',true],['amount','Monto','number',true],['accountId','Cuenta','accountSelect'],['fromAccountId','Desde cuenta (transferencia)','accountSelect'],['toAccountId','Hacia cuenta (transferencia)','accountSelect'],['project','Proyecto / referencia','text'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.type} · ${x.category}`,details:x=>`${fmtDate(x.date)} · ${money(x.amount)}`},
+    cuentasCobrar:{title:'Cuentas por cobrar',icon:'📥',desc:'Deudas de clientes',fields:[
+      ['date','Fecha','date',true],['partyId','Cliente','entitySelect',false,'terceros'],['concept','Concepto','text',true],['amount','Importe original','number',true],['paid','Cobrado acumulado','number'],['dueDate','Vencimiento','date'],['status','Estado','select',true,['PENDIENTE','PARCIAL','PAGADA','ANULADA']],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.concept} · ${money(Math.max(0,num(x.amount)-num(x.paid)))}`,details:x=>`${nameOf('terceros',x.partyId)} · vence ${fmtDate(x.dueDate)}`},
+    cuentasPagar:{title:'Cuentas por pagar',icon:'📤',desc:'Deudas con proveedores',fields:[
+      ['date','Fecha','date',true],['partyId','Proveedor','entitySelect',false,'terceros'],['concept','Concepto','text',true],['amount','Importe original','number',true],['paid','Pagado acumulado','number'],['dueDate','Vencimiento','date'],['status','Estado','select',true,['PENDIENTE','PARCIAL','PAGADA','ANULADA']],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.concept} · ${money(Math.max(0,num(x.amount)-num(x.paid)))}`,details:x=>`${nameOf('terceros',x.partyId)} · vence ${fmtDate(x.dueDate)}`},
+    prestamos:{title:'Préstamos',icon:'🏛️',desc:'Financiamiento y saldos',fields:[
+      ['date','Fecha','date',true],['creditor','Acreedor','text',true],['source','Origen','select',true,['BANCO','CAJA','FINANCIERA','PRESTAMISTA','FAMILIAR','OTRO']],['capital','Capital recibido','number',true],['interest','Interés total estimado','number'],['commissions','Comisiones','number'],['paymentMode','Modalidad','select',true,['CUOTAS_FIJAS','PAGO_ÚNICO','AL_FINALIZAR_COSECHA','PERSONALIZADO']],['balance','Saldo de capital','number'],['accountId','Cuenta que recibió el dinero','accountSelect'],['notes','Observaciones','textarea']
+    ],summary:x=>`${x.creditor} · ${money(x.balance == null ? x.capital : x.balance)}`,details:x=>`${x.source} · ${fmtDate(x.date)} · ${x.paymentMode}`}
+  };
+
+  function nameOf(collection,id){ const x=(state[collection]||[]).find(r=>r.id===id); return (x && (x.name||x.code||x.product)) || 'Sin especificar'; }
+  function moduleCount(key){return active(state[key]).length}
+  function topbar(){ return `<header class="topbar"><div class="topbar-row"><div class="brand"><div class="brand-mark">🌿</div><div><h1>${esc(state.settings.businessName||'AgroGestión')}</h1><small>Gestión agropecuaria · ${navigator.onLine?'conectado':'sin conexión'}</small></div></div><div class="top-actions">${isStandalone()?'':`<button class="icon-btn" title="Instalar aplicación" onclick="AG.installApp()">⬇</button>`}<button class="icon-btn" title="Configuración" onclick="AG.go('configuracion')">⚙️</button></div></div></header>`; }
+  function bottom(activeKey){return `<nav class="bottom">
+    ${nav('home','⌂','Inicio',activeKey)}${nav('operaciones','＋','Operar',activeKey)}${nav('inventario','▣','Stock',activeKey)}${nav('reportes','▥','Reportes',activeKey)}${nav('mas','⋯','Más',activeKey)}
+  </nav>`;}
+  function nav(k,i,l,a){return `<button class="nav ${a===k?'active':''}" onclick="AG.go('${k}')"><span>${i}</span><span>${l}</span></button>`}
+  function layout(body,navKey=current){return topbar()+`<main class="content">${body}</main>`+bottom(navKey)}
+  function render(){
+    if(!unlocked&&state.settings.pin){renderLock();return}
+    document.getElementById('lockRoot').innerHTML='';
+    const app=document.getElementById('app');
+    if(current==='home') app.innerHTML=layout(home(),'home');
+    else if(current==='operaciones') app.innerHTML=layout(moduleMenu(true),'operaciones');
+    else if(current==='mas') app.innerHTML=layout(moduleMenu(false),'mas');
+    else if(current==='reportes') app.innerHTML=layout(reports(),'reportes');
+    else if(current==='backups') app.innerHTML=layout(backups(),'mas');
+    else if(current==='configuracion') app.innerHTML=layout(settings(),'mas');
+    else if(defs[current]) app.innerHTML=layout(entityPage(current), current==='inventario'?'inventario':'operaciones');
+    else {current='home';render();}
+    window.scrollTo(0,0);
+  }
+  function home(){ const m=metrics(); const backup=state.backups[0]; return `
+    <section class="hero"><div class="eyebrow">Caja disponible</div><div class="amount">${money(m.cash)}</div><div class="sub">Suma de efectivo, Yape, Plin y cuentas bancarias</div><div class="backup-pill">${backup?'✅ Último respaldo '+fmtDate(backup.date):'⚠️ Sin respaldo exportado'}</div></section>
+    ${isStandalone()?'':`<section class="install-card"><div><strong>Instálala como una aplicación</strong><small>Se abrirá desde la pantalla principal y seguirá funcionando sin conexión tras la primera carga.</small></div><button class="primary" onclick="AG.installApp()">Instalar</button></section>`}
+    <div class="section-title"><h2>Resumen del negocio</h2><button onclick="AG.go('reportes')">Ver reportes</button></div>
+    <section class="metric-grid">
+      ${metric('📥','Por cobrar',m.receivable,'Pendiente de clientes','warn')}${metric('📤','Por pagar',m.payable,'Pendiente a proveedores','danger')}
+      ${metric('📦','Inventario',m.inv,'Valor estimado','good')}${metric('🏛️','Préstamos',m.loans,'Saldo de capital','danger')}
+      ${metric('💰','Ventas del mes',m.sales,'Ventas registradas','good')}${metric('🧾','Gastos del mes',m.expenses,'Egresos de caja','warn')}
+      ${metric('📈','Utilidad estimada',m.profit,'Ventas menos egresos',''+(m.profit>=0?'good':'danger'))}${metric('🌾','Campañas activas',active(state.campanas).filter(x=>x.status==='ACTIVA'||x.status==='COSECHA').length,'En curso','')}
+    </section>
+    <div class="section-title"><h2>Acciones rápidas</h2></div>
+    <section class="quick-grid">
+      ${quick('caja','🧾','Gasto','EGRESO')}${quick('compras','🛒','Compra')}${quick('ventas','💰','Venta')}${quick('jornales','👷','Jornal')}
+      ${quick('cosechas','🧺','Cosecha')}${quick('inventario','📦','Stock')}${quick('cuentasPagar','📤','Pago')}${quick('cuentasCobrar','📥','Cobro')}
+    </section>
+    <div class="section-title"><h2>Estado</h2></div>
+    <section class="status-card"><div><strong>${navigator.onLine?'Conectividad disponible':'Modo sin conexión'}</strong><small>Los datos se guardan localmente en este teléfono</small></div><span style="font-size:28px">${navigator.onLine?'🌐':'📴'}</span></section>
+  `;}
+  function metric(icon,label,value,note,cls){return `<div class="metric ${cls||''}"><div class="label"><span>${icon}</span>${label}</div><div class="value">${typeof value==='number'&&label!=='Campañas activas'?money(value):value}</div><div class="note">${note}</div></div>`}
+  function quick(k,i,l,preset){return `<button class="quick" onclick="AG.openForm('${k}',null,${preset?`{type:'${preset}'}`:'null'})"><span class="qicon">${i}</span><span>+ ${l}</span></button>`}
+  function moduleMenu(operations){ const chosen=modules.filter((m,i)=>operations?i<15:i>=15); return `<div class="page-head"><div><h2>${operations?'Operaciones':'Más módulos'}</h2><p>${operations?'Registra el trabajo diario del negocio':'Reportes, respaldos y ajustes'}</p></div></div><section class="module-grid">${chosen.map(m=>`<button class="module-card" onclick="AG.go('${m[0]}')"><span class="micon">${m[1]}</span><strong>${m[2]}</strong><small>${m[3]} · ${defs[m[0]]?moduleCount(m[0])+' registros':'Abrir'}</small></button>`).join('')}</section>`;}
+  function entityPage(key){ const d=defs[key]; let rows=active(state[key]); const q=searchText.trim().toLowerCase(); if(q) rows=rows.filter(x=>JSON.stringify(x).toLowerCase().includes(q)); rows=[...rows].reverse(); return `
+    <div class="page-head"><button class="back" onclick="AG.back()">‹</button><div><h2>${d.icon} ${d.title}</h2><p>${d.desc} · ${rows.length} registros</p></div></div>
+    <div class="toolbar"><input class="search" value="${esc(searchText)}" placeholder="Buscar..." oninput="AG.search(this.value)"><button class="primary" onclick="AG.openForm('${key}')">+ Nuevo</button></div>
+    <section class="list">${rows.length?rows.map(x=>rowCard(key,x,d)).join(''):empty(d.icon,'Todavía no hay registros','Pulsa “+ Nuevo” para comenzar.')}</section>`;}
+  function rowCard(key,x,d){
+    const title=x.name||x.code||x.product||x.concept||x.category||x.creditor||x.activity||'Registro';
+    const isFinancial=financialKeys.includes(key);
+    const balance=(key==='cuentasCobrar'||key==='cuentasPagar')?Math.max(0,num(x.amount)-num(x.paid)):0;
+    const settle=balance>0?`<button onclick="AG.openSettlement('${key}','${x.id}')">${key==='cuentasCobrar'?'Registrar cobro':'Registrar pago'}</button>`:'';
+    return `<article class="row-card"><div class="row-top"><div><h3>${esc(title)}</h3><p>${esc(d.summary?d.summary(x):'')}</p><p>${esc(d.details?d.details(x):'')}</p></div>${x.status?`<span class="chip ${statusClass(x.status)}">${esc(x.status)}</span>`:''}</div><div class="row-meta"><span class="chip gray">Creado ${fmtDate((x.createdAt||'').slice(0,10))}</span>${x.cancelled?'<span class="chip red">ANULADO</span>':''}</div><div class="row-actions">${isFinancial?'':`<button onclick="AG.openForm('${key}','${x.id}')">Editar</button>`}${settle}<button onclick="AG.cancel('${key}','${x.id}')">${isFinancial?'Anular':'Eliminar'}</button></div></article>`;
+  }
+  const financialKeys=['compras','ventas','jornales','caja','cuentasCobrar','cuentasPagar','prestamos','cosechas'];
+  function statusClass(s){return /PAGADA|FINALIZADA|ACTIVA|CORRECTO/.test(s)?'':/CANCEL|ANUL|VENC/.test(s)?'red':/PARCIAL|COSECHA|PENDIENTE/.test(s)?'amber':'blue'}
+  function empty(icon,title,text){return `<div class="empty"><div class="eicon">${icon}</div><h3>${title}</h3><p>${text}</p></div>`}
+
+  function fieldHtml(f,val){ const [name,label,type,required,options]=f; if(val == null) val=defaultValue(name,type); const req=required?'required':''; let input='';
+    if(type==='select') input=`<select name="${name}" ${req}>${(options||[]).map(o=>`<option value="${esc(o)}" ${String(val)===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    else if(type==='entitySelect'){ const arr=active(state[options]||[]); input=`<select name="${name}" ${req}><option value="">-- Seleccionar --</option>${arr.map(o=>`<option value="${o.id}" ${val===o.id?'selected':''}>${esc(o.name||o.code||o.product||'Registro')}</option>`).join('')}</select>`; }
+    else if(type==='accountSelect'){ input=`<select name="${name}" ${req}><option value="">-- Seleccionar --</option>${state.accounts.filter(a=>a.active).map(a=>`<option value="${a.id}" ${val===a.id?'selected':''}>${esc(a.name)} (${money(accountBalance(a.id))})</option>`).join('')}</select>`; }
+    else if(type==='textarea') input=`<textarea name="${name}" ${req}>${esc(val)}</textarea>`;
+    else input=`<input name="${name}" type="${type}" value="${esc(val)}" ${req} ${type==='number'?'step="0.01" inputmode="decimal"':''}>`;
+    return `<label class="field"><span>${label}${required?' *':''}</span>${input}</label>`; }
+  function defaultValue(name,type){if(type==='date')return today(); if(name==='status')return 'ACTIVA'; if(name==='areaUnit')return'ha'; if(name==='unit')return'kg'; if(name==='createInventory')return'SÍ'; return'';}
+  function openForm(key,id,preset){
+    const d=defs[key]; if(!d)return;
+    if(id&&financialKeys.includes(key)){toast('Las operaciones confirmadas no se editan; deben anularse');return;}
+    const original=id?(state[key]||[]).find(x=>x.id===id):null;
+    const data={...(original||{}),...(preset||{})};
+    document.getElementById('modalRoot').innerHTML=`<div class="modal-wrap" onclick="if(event.target===this)AG.closeModal()"><section class="modal"><div class="modal-head"><div><h2>${original?'Editar':'Nuevo'} · ${d.title}</h2><div class="hint">Los campos con * son obligatorios</div></div><button class="close" onclick="AG.closeModal()">×</button></div><form id="entityForm" onsubmit="AG.submit(event,'${key}','${id||''}')"><div class="form-grid two">${d.fields.map(f=>fieldHtml(f,data[f[0]])).join('')}</div><div class="modal-actions"><button type="button" class="secondary" onclick="AG.closeModal()">Cancelar</button><button type="submit" class="primary">Guardar</button></div></form></section></div>`;
+  }
+  function submit(ev,key,id){ ev.preventDefault(); const fd=new FormData(ev.target), obj={}; for(const [k,v] of fd.entries())obj[k]=v; const old=id?(state[key]||[]).find(x=>x.id===id):null; const record={...(old||{}),...obj,id:id||uid(),createdAt:(old&&old.createdAt)||nowIso(),updatedAt:nowIso(),cancelled:false};
+    try{applyBusinessRules(key,record,old);}catch(e){toast(e.message||'Revisa los datos');return}
+    if(id){const idx=state[key].findIndex(x=>x.id===id);state[key][idx]=record}else state[key].push(record);
+    closeModal(); save('Registro guardado correctamente'); }
+  function requireAccountWhenPositive(amount,accountId,label){
+    if(num(amount)>0&&!accountId)throw Error(`Selecciona la cuenta para ${label}`);
+  }
+  function applyBusinessRules(key,r,old){
+    if(key==='compras'){
+      if(num(r.quantity)<0||num(r.unitPrice)<0||num(r.extraCosts)<0||num(r.paid)<0)throw Error('Los importes no pueden ser negativos');
+      r.total=num(r.quantity)*num(r.unitPrice)+num(r.extraCosts);
+      if(num(r.paid)>r.total)throw Error('El pago no puede superar el total');
+      requireAccountWhenPositive(r.paid,r.accountId,'registrar el pago');
+      if(r.createInventory==='SÍ'&&num(r.quantity)<=0)throw Error('Indica una cantidad mayor que cero para ingresar a inventario');
+      if(!old&&r.createInventory==='SÍ'){
+        const inv={id:uid(),code:`${String(r.product).toUpperCase().slice(0,4)}-${new Date().getFullYear()}-${String(state.inventario.length+1).padStart(3,'0')}`,product:r.product,quantity:String(num(r.quantity)),unit:r.unit||'kg',unitCost:String(r.total/num(r.quantity)),origin:'COMPRA',date:r.date,sourceId:r.id,notes:`Generado desde compra ${r.id}`,createdAt:nowIso(),updatedAt:nowIso()};
+        state.inventario.push(inv); r.inventoryId=inv.id;
+      }
+      if(!old&&r.total-num(r.paid)>0)state.cuentasPagar.push({id:uid(),date:r.date,partyId:r.partyId,concept:`Compra de ${r.product}`,amount:String(r.total),paid:String(num(r.paid)),dueDate:'',status:num(r.paid)>0?'PARCIAL':'PENDIENTE',sourceId:r.id,createdAt:nowIso(),updatedAt:nowIso()});
+      if(!old&&num(r.paid)>0)state.caja.push({id:uid(),date:r.date,type:'EGRESO',category:`Compra: ${r.product}`,amount:String(r.paid),accountId:r.accountId,project:'COMPRA',sourceId:r.id,createdAt:nowIso(),updatedAt:nowIso()});
+    }
+    if(key==='ventas'){
+      if(num(r.quantity)<=0)throw Error('La cantidad debe ser mayor que cero');
+      if(num(r.unitPrice)<0||num(r.paid)<0)throw Error('Los importes no pueden ser negativos');
+      r.total=num(r.quantity)*num(r.unitPrice);
+      if(num(r.paid)>r.total)throw Error('El cobro no puede superar el total');
+      requireAccountWhenPositive(r.paid,r.accountId,'registrar el cobro');
+      if(!old&&r.inventoryId){
+        const inv=state.inventario.find(x=>x.id===r.inventoryId&&!x.deleted&&!x.cancelled);
+        if(!inv)throw Error('El lote seleccionado ya no está disponible');
+        if(num(r.quantity)>num(inv.quantity))throw Error('Stock insuficiente en el lote seleccionado');
+        inv.quantity=String(num(inv.quantity)-num(r.quantity)); inv.updatedAt=nowIso();
+      }
+      if(!old&&r.total-num(r.paid)>0)state.cuentasCobrar.push({id:uid(),date:r.date,partyId:r.partyId,concept:`Venta de ${r.product}`,amount:String(r.total),paid:String(num(r.paid)),dueDate:'',status:num(r.paid)>0?'PARCIAL':'PENDIENTE',sourceId:r.id,createdAt:nowIso(),updatedAt:nowIso()});
+      if(!old&&num(r.paid)>0)state.caja.push({id:uid(),date:r.date,type:'INGRESO',category:`Venta: ${r.product}`,amount:String(r.paid),accountId:r.accountId,project:'VENTA',sourceId:r.id,createdAt:nowIso(),updatedAt:nowIso()});
+    }
+    if(key==='cosechas'){
+      const qty=num(r.netKg)||num(r.quantity);
+      if(qty<=0)throw Error('La cantidad cosechada debe ser mayor que cero');
+      if(num(r.loss)<0||num(r.unitCost)<0)throw Error('Los valores no pueden ser negativos');
+      if(!old&&r.destination==='INVENTARIO'){
+        const inv={id:uid(),code:`COS-${new Date().getFullYear()}-${String(state.inventario.length+1).padStart(3,'0')}`,product:r.product,quantity:String(qty),unit:'kg',unitCost:String(num(r.unitCost)),origin:'COSECHA',date:r.date,sourceId:r.id,notes:`Campaña ${nameOf('campanas',r.campaignId)}`,createdAt:nowIso(),updatedAt:nowIso()};
+        state.inventario.push(inv); r.inventoryId=inv.id;
+      }
+    }
+    if(key==='jornales'){
+      if(num(r.quantity)<=0||num(r.rate)<0||num(r.advance)<0||num(r.paid)<0)throw Error('Revisa cantidades, tarifa y pagos');
+      r.total=num(r.quantity)*num(r.rate);
+      const paid=num(r.advance)+num(r.paid);
+      if(paid>r.total)throw Error('Los pagos no pueden superar el total del jornal');
+      requireAccountWhenPositive(paid,r.accountId,'registrar el pago del jornal');
+      r.balance=Math.max(0,r.total-paid);
+      if(!old&&paid>0)state.caja.push({id:uid(),date:r.date,type:'EGRESO',category:`Jornal: ${r.activity}`,amount:String(paid),accountId:r.accountId,project:r.projectType,sourceId:r.id,createdAt:nowIso(),updatedAt:nowIso()});
+    }
+    if(key==='prestamos'){
+      if(num(r.capital)<=0)throw Error('El capital debe ser mayor que cero');
+      if(num(r.interest)<0||num(r.commissions)<0||num(r.balance)<0)throw Error('Los importes no pueden ser negativos');
+      requireAccountWhenPositive(r.capital,r.accountId,'recibir el préstamo');
+      if(!r.balance)r.balance=String(num(r.capital));
+      if(!old)state.caja.push({id:uid(),date:r.date,type:'INGRESO',category:`Capital de préstamo: ${r.creditor}`,amount:String(r.capital),accountId:r.accountId,project:'PRÉSTAMO - NO ES INGRESO OPERATIVO',sourceId:r.id,nonOperating:true,createdAt:nowIso(),updatedAt:nowIso()});
+    }
+    if(key==='caja'){
+      if(num(r.amount)<=0)throw Error('El monto debe ser mayor que cero');
+      if(r.type==='TRANSFERENCIA'){
+        if(!r.fromAccountId||!r.toAccountId)throw Error('Selecciona cuenta de origen y destino');
+        if(r.fromAccountId===r.toAccountId)throw Error('Las cuentas de origen y destino deben ser diferentes');
+      }else if(!r.accountId)throw Error('Selecciona la cuenta del movimiento');
+    }
+    if(key==='cuentasCobrar'||key==='cuentasPagar'){
+      if(num(r.amount)<=0||num(r.paid)<0)throw Error('Revisa el importe y lo pagado');
+      if(num(r.paid)>num(r.amount))throw Error('Lo pagado no puede superar el importe original');
+      const bal=num(r.amount)-num(r.paid);
+      r.status=bal<=0?'PAGADA':num(r.paid)>0?'PARCIAL':'PENDIENTE';
+    }
+    if(key==='pollos'&&num(r.deadBirds)>num(r.initialBirds))throw Error('La mortalidad no puede superar las aves iniciales');
+  }
+  function cancelLinkedBySource(collection,sourceId){
+    (state[collection]||[]).filter(x=>x.sourceId===sourceId&&!x.cancelled&&!x.deleted).forEach(x=>{
+      x.cancelled=true;x.cancelledAt=nowIso();x.cancellationReason='Anulación de operación origen';x.status='ANULADA';
+      if(collection==='cuentasCobrar'||collection==='cuentasPagar')cancelLinkedBySource('caja',x.id);
+    });
+  }
+  function cancel(key,id){
+    const x=(state[key]||[]).find(r=>r.id===id); if(!x)return;
+    const label=financialKeys.includes(key)?'anular':'eliminar';
+    if(!confirm(`¿Deseas ${label} este registro?`))return;
+    if(financialKeys.includes(key)){
+      if((key==='compras'||key==='cosechas')&&x.inventoryId){
+        const inv=state.inventario.find(i=>i.id===x.inventoryId&&!i.deleted&&!i.cancelled);
+        const original=key==='compras'?num(x.quantity):(num(x.netKg)||num(x.quantity));
+        if(inv&&Math.abs(num(inv.quantity)-original)>0.000001){toast('No se puede anular: el lote asociado ya tuvo salidas o ajustes');return;}
+        if(inv){inv.deleted=true;inv.deletedAt=nowIso();inv.notes=`${inv.notes||''} · Anulado con operación origen`;}
+      }
+      if(key==='ventas'&&x.inventoryId){
+        const inv=state.inventario.find(i=>i.id===x.inventoryId&&!i.deleted&&!i.cancelled);
+        if(inv){inv.quantity=String(num(inv.quantity)+num(x.quantity));inv.updatedAt=nowIso();}
+      }
+      x.cancelled=true; x.cancelledAt=nowIso(); x.cancellationReason='Anulado desde la aplicación';
+      if(key==='compras')cancelLinkedBySource('cuentasPagar',id);
+      if(key==='ventas')cancelLinkedBySource('cuentasCobrar',id);
+      if(['compras','ventas','jornales','prestamos','cuentasCobrar','cuentasPagar'].includes(key))cancelLinkedBySource('caja',id);
+    }else{x.deleted=true;x.deletedAt=nowIso();}
+    save('Operación registrada');
+  }
+  function openSettlement(key,id){
+    if(key!=='cuentasCobrar'&&key!=='cuentasPagar')return;
+    const debt=state[key].find(x=>x.id===id&&!x.cancelled&&!x.deleted); if(!debt)return;
+    const balance=Math.max(0,num(debt.amount)-num(debt.paid));
+    if(balance<=0){toast('Esta cuenta ya está pagada');return;}
+    document.getElementById('modalRoot').innerHTML=`<div class="modal-wrap" onclick="if(event.target===this)AG.closeModal()"><section class="modal"><div class="modal-head"><div><h2>${key==='cuentasCobrar'?'Registrar cobro':'Registrar pago'}</h2><div class="hint">Saldo pendiente: ${money(balance)}</div></div><button class="close" onclick="AG.closeModal()">×</button></div><form onsubmit="AG.saveSettlement(event,'${key}','${id}')"><div class="form-grid"><label class="field"><span>Fecha *</span><input name="date" type="date" value="${today()}" required></label><label class="field"><span>Monto *</span><input name="amount" type="number" step="0.01" inputmode="decimal" max="${balance}" required></label><label class="field"><span>Cuenta *</span><select name="accountId" required><option value="">-- Seleccionar --</option>${state.accounts.filter(a=>a.active).map(a=>`<option value="${a.id}">${esc(a.name)} (${money(accountBalance(a.id))})</option>`).join('')}</select></label><label class="field"><span>Observaciones</span><textarea name="notes"></textarea></label></div><div class="modal-actions"><button type="button" class="secondary" onclick="AG.closeModal()">Cancelar</button><button class="primary">Guardar</button></div></form></section></div>`;
+  }
+  function saveSettlement(ev,key,id){
+    ev.preventDefault();
+    const debt=state[key].find(x=>x.id===id&&!x.cancelled&&!x.deleted); if(!debt){toast('La cuenta ya no está disponible');return;}
+    const fd=new FormData(ev.target); const amount=num(fd.get('amount')); const balance=Math.max(0,num(debt.amount)-num(debt.paid));
+    if(amount<=0||amount>balance){toast('El monto debe ser mayor que cero y no superar el saldo');return;}
+    const accountId=String(fd.get('accountId')||''); if(!accountId){toast('Selecciona una cuenta');return;}
+    debt.paid=String(num(debt.paid)+amount); debt.updatedAt=nowIso(); debt.status=num(debt.paid)>=num(debt.amount)?'PAGADA':'PARCIAL';
+    state.caja.push({id:uid(),date:String(fd.get('date')||today()),type:key==='cuentasCobrar'?'INGRESO':'EGRESO',category:`${key==='cuentasCobrar'?'Cobro':'Pago'}: ${debt.concept}`,amount:String(amount),accountId,project:key==='cuentasCobrar'?'CUENTA POR COBRAR':'CUENTA POR PAGAR',sourceId:debt.id,notes:String(fd.get('notes')||''),createdAt:nowIso(),updatedAt:nowIso()});
+    closeModal(); save(key==='cuentasCobrar'?'Cobro registrado':'Pago registrado');
+  }
+  function search(v){searchText=v;render()}
+  function closeModal(){document.getElementById('modalRoot').innerHTML=''}
+  function go(k){previous=current;current=k;searchText='';render()}
+  function back(){current=previous==='home'?'operaciones':previous;previous='home';searchText='';render()}
+
+  function reports(){const m=metrics();const max=Math.max(m.sales,m.expenses,1); const topInventory=active(state.inventario).sort((a,b)=>num(b.quantity)*num(b.unitCost)-num(a.quantity)*num(a.unitCost)).slice(0,5);return `<div class="page-head"><button class="back" onclick="AG.back()">‹</button><div><h2>📊 Reportes</h2><p>Indicadores calculados con los registros locales</p></div></div>
+    <section class="report-grid">${report('Caja',m.cash)}${report('Por cobrar',m.receivable)}${report('Por pagar',m.payable)}${report('Inventario',m.inv)}${report('Ventas mes',m.sales)}${report('Gastos mes',m.expenses)}${report('Resultado estimado',m.profit)}${report('Préstamos',m.loans)}</section>
+    <section class="chart"><h3 style="margin:0 0 4px">Ventas y egresos del mes</h3><div class="bar-row"><span>Ventas</span><div class="bar-track"><div class="bar-fill" style="width:${m.sales/max*100}%"></div></div><b>${money(m.sales)}</b></div><div class="bar-row"><span>Egresos</span><div class="bar-track"><div class="bar-fill" style="width:${m.expenses/max*100}%"></div></div><b>${money(m.expenses)}</b></div></section>
+    <section class="chart"><h3 style="margin:0 0 10px">Inventario valorizado</h3>${topInventory.length?topInventory.map(x=>`<div class="row-card" style="margin:7px 0"><div class="row-top"><div><h3>${esc(x.product)}</h3><p>${esc(x.code)} · ${x.quantity} ${x.unit}</p></div><strong>${money(num(x.quantity)*num(x.unitCost))}</strong></div></div>`).join(''):empty('📦','Sin inventario','Registra compras o cosechas con ingreso a inventario.')}</section>
+    <div class="notice">La utilidad mostrada es una estimación operativa simple (ventas del mes menos egresos de caja). La versión contable completa requiere costo de ventas, inventario inicial/final, depreciación y devengo.</div>`;}
+  function report(l,v){return `<div class="report-card"><small>${l}</small><strong>${money(v)}</strong></div>`}
+
+  function backupPayload(){return {app:'AgroGestión',format:1,version:VERSION,exportedAt:nowIso(),data:state};}
+  function backupFilename(){const d=new Date();const pad=n=>String(n).padStart(2,'0');return `agrogestion_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.json`;}
+  function backups(){const generated=JSON.stringify(backupPayload(),null,2);return `<div class="page-head"><button class="back" onclick="AG.back()">‹</button><div><h2>☁️ Respaldo y restauración</h2><p>Protege una copia fuera del teléfono</p></div></div>
+    <div class="notice">La página y los datos son cosas distintas: GitHub aloja únicamente el código. Tus registros se guardan en este navegador. Descarga respaldos frecuentes y guárdalos en Drive, Telegram o una computadora.</div>
+    <section class="backup-box"><h3>Crear respaldo</h3><p>Descarga un archivo JSON con todos los registros actuales. También puedes compartirlo directamente desde Android cuando el navegador lo permita.</p><div class="toolbar"><button class="primary" onclick="AG.downloadBackup()">Descargar archivo</button><button class="secondary" onclick="AG.shareBackup()">Compartir</button></div><details><summary style="cursor:pointer;font-weight:700;margin:8px 0">Ver o copiar contenido</summary><textarea id="backupOutput" class="backup-text" readonly>${esc(generated)}</textarea><button class="secondary" style="margin-top:8px" onclick="AG.copyBackup()">Copiar texto</button></details></section>
+    <section class="backup-box"><h3>Restaurar respaldo</h3><p>Selecciona un archivo generado por AgroGestión. La base actual se conserva como recuperación antes de reemplazarla.</p><input id="restoreFile" class="file-picker" type="file" accept="application/json,.json" onchange="AG.restoreBackupFile(this)"><div class="toolbar"><button class="primary" onclick="document.getElementById('restoreFile').click()">Seleccionar archivo</button></div><details><summary style="cursor:pointer;font-weight:700;margin:8px 0">Restaurar pegando JSON</summary><textarea id="restoreInput" class="backup-text" placeholder="Pega aquí el JSON del respaldo"></textarea><button class="danger-btn" style="margin-top:8px" onclick="AG.restoreBackup()">Validar y restaurar</button></details></section>
+    <section class="backup-box"><h3>Historial</h3>${state.backups.length?state.backups.slice(0,10).map(x=>`<div class="row-card" style="margin-top:8px"><h3>Respaldo manual</h3><p>${fmtDate(x.date)} · ${esc(x.status)}</p></div>`).join(''):'<p>No hay respaldos descargados todavía.</p>'}</section>`;}
+  async function copyBackup(){const text=document.getElementById('backupOutput').value;try{if(navigator.clipboard&&window.isSecureContext)await navigator.clipboard.writeText(text);else{const ta=document.getElementById('backupOutput');ta.focus();ta.select();document.execCommand('copy');}toast('Respaldo copiado');}catch(e){toast('Mantén pulsado el texto y selecciona Copiar');}}
+  function markBackup(status='GUARDADO MANUALMENTE'){state.backups.unshift({id:uid(),date:today(),createdAt:nowIso(),status});save();}
+  function makeBackupFile(){const text=JSON.stringify(backupPayload(),null,2);return new File([text],backupFilename(),{type:'application/json'});}
+  function downloadBackup(){const file=makeBackupFile();const url=URL.createObjectURL(file);const a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);markBackup('DESCARGADO');toast('Respaldo descargado');}
+  async function shareBackup(){try{const file=makeBackupFile();if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'Respaldo AgroGestión',text:'Copia de seguridad de AgroGestión',files:[file]});markBackup('COMPARTIDO');toast('Respaldo compartido');}else downloadBackup();}catch(e){if(e&&e.name!=='AbortError')toast('No se pudo compartir; usa Descargar archivo');}}
+  function applyRestoredData(raw){const parsed=JSON.parse(raw);const data=parsed.data||parsed;if(!data.version||!data.settings)throw Error('Formato no reconocido');if(!confirm('Esto reemplazará los datos actuales. ¿Continuar?'))return false;state=migrate(data);unlocked=!state.settings.pin;save('Respaldo restaurado correctamente');return true;}
+  function restoreBackup(){const el=document.getElementById('restoreInput');const raw=el?el.value.trim():'';if(!raw){toast('Pega primero el respaldo');return}try{applyRestoredData(raw);}catch(e){toast('Respaldo inválido: '+e.message)}}
+  async function restoreBackupFile(input){const file=input&&input.files&&input.files[0];if(!file)return;try{const raw=await file.text();applyRestoredData(raw);}catch(e){toast('Respaldo inválido: '+e.message)}finally{input.value='';}}
+
+  function settings(){return `<div class="page-head"><button class="back" onclick="AG.back()">‹</button><div><h2>⚙️ Configuración</h2><p>Negocio, cuentas y seguridad local</p></div></div>
+    <section class="backup-box"><h3>Datos del negocio</h3><label class="field"><span>Nombre</span><input id="businessName" value="${esc(state.settings.businessName)}"></label><label class="field" style="margin-top:10px"><span>Propietario</span><input id="owner" value="${esc(state.settings.owner)}"></label><button class="primary" style="margin-top:12px" onclick="AG.saveSettings()">Guardar</button></section>
+    <section class="backup-box"><h3>Cuentas financieras</h3><p>El saldo se calcula desde el saldo inicial y los movimientos de caja.</p>${state.accounts.map(a=>`<div class="row-card" style="margin:8px 0"><div class="row-top"><div><h3>${esc(a.name)}</h3><p>${a.type}</p></div><strong>${money(accountBalance(a.id))}</strong></div><div class="row-actions"><button onclick="AG.editAccount('${a.id}')">Editar</button></div></div>`).join('')}<button class="secondary" onclick="AG.editAccount('')">+ Agregar cuenta</button></section>
+    <section class="backup-box"><h3>PIN local</h3><p>Protege la apertura de la app en este dispositivo. No reemplaza el bloqueo del teléfono.</p><label class="field"><span>PIN de 4 dígitos</span><input id="pinValue" type="number" inputmode="numeric" maxlength="4" value="${esc(state.settings.pin)}" placeholder="Déjalo vacío para desactivar"></label><button class="primary" style="margin-top:12px" onclick="AG.savePin()">Actualizar PIN</button></section>
+    <section class="backup-box"><h3>Datos de ejemplo</h3><p>Carga un pequeño escenario para probar dashboard, inventario, venta y gastos.</p><button class="secondary" onclick="AG.loadDemo()">Cargar datos de demostración</button></section>
+    <section class="backup-box"><h3>Instalación y almacenamiento</h3><p>La aplicación funciona sin servidor. El código está en GitHub Pages y tus datos permanecen en este navegador.</p><div class="storage-grid"><div class="storage-line"><span>Modo de almacenamiento</span><strong>${storageBackend}</strong></div><div class="storage-line"><span>Protección contra limpieza automática</span><strong>${storagePersistent?'Activada':'No confirmada'}</strong></div><div class="storage-line"><span>Modo aplicación</span><strong>${isStandalone()?'Instalada':'Navegador'}</strong></div></div><div class="toolbar">${isStandalone()?'':`<button class="secondary" onclick="AG.installApp()">Instalar app</button>`}<button class="secondary" onclick="AG.requestPersistence()">Proteger datos</button></div></section>
+    <section class="backup-box"><h3>Información técnica</h3><p>Versión ${VERSION}<br>IndexedDB con respaldo manual JSON<br>Modo offline mediante Service Worker<br>Sin backend ni cuenta externa</p><button class="danger-btn" onclick="AG.resetAll()">Borrar todos los datos</button></section>`;}
+  function saveSettings(){state.settings.businessName=document.getElementById('businessName').value.trim()||'AgroGestión';state.settings.owner=document.getElementById('owner').value.trim();save('Configuración guardada')}
+  function savePin(){const p=document.getElementById('pinValue').value.trim();if(p&& !/^\d{4}$/.test(p)){toast('El PIN debe tener 4 dígitos');return}state.settings.pin=p;unlocked=true;save(p?'PIN actualizado':'PIN desactivado')}
+  function editAccount(id){const a=id?state.accounts.find(x=>x.id===id):{id:'',name:'',type:'OTRA',initial:0,active:true};document.getElementById('modalRoot').innerHTML=`<div class="modal-wrap"><section class="modal"><div class="modal-head"><h2>${id?'Editar':'Nueva'} cuenta</h2><button class="close" onclick="AG.closeModal()">×</button></div><form onsubmit="AG.saveAccount(event,'${id}')"><div class="form-grid"><label class="field"><span>Nombre *</span><input name="name" required value="${esc(a.name)}"></label><label class="field"><span>Tipo</span><select name="type">${['EFECTIVO','YAPE','PLIN','BANCO','OTRA'].map(x=>`<option ${a.type===x?'selected':''}>${x}</option>`).join('')}</select></label><label class="field"><span>Saldo inicial</span><input name="initial" type="number" step="0.01" value="${a.initial||0}"></label></div><div class="modal-actions"><button class="secondary" type="button" onclick="AG.closeModal()">Cancelar</button><button class="primary">Guardar</button></div></form></section></div>`;}
+  function saveAccount(e,id){e.preventDefault();const fd=new FormData(e.target);if(id){const a=state.accounts.find(x=>x.id===id);a.name=fd.get('name');a.type=fd.get('type');a.initial=fd.get('initial')}else state.accounts.push({id:uid(),name:fd.get('name'),type:fd.get('type'),initial:fd.get('initial'),active:true});closeModal();save('Cuenta guardada')}
+  function loadDemo(){if(state.settings.demoLoaded&&!confirm('Ya se cargó una demostración. ¿Agregar otra?'))return;const cash=state.accounts[0].id;const cli={id:uid(),name:'Mercado Central',role:'CLIENTE',document:'',phone:'',createdAt:nowIso()};const prov={id:uid(),name:'Proveedor Agrícola Norte',role:'PROVEEDOR',createdAt:nowIso()};state.terceros.push(cli,prov);const land={id:uid(),name:'San Pedro',owner:'Familia',type:'PROPIO',location:'Piura',area:'8',areaUnit:'ha',createdAt:nowIso()};state.terrenos.push(land);const camp={id:uid(),code:'AGR-2026-001',crop:'Sandía',landId:land.id,area:'4',startDate:today(),status:'ACTIVA',budget:'18000',createdAt:nowIso()};state.campanas.push(camp);const inv={id:uid(),code:'ARR-2026-001',product:'Arroz',quantity:'850',unit:'kg',unitCost:'2.10',origin:'COMPRA',date:today(),createdAt:nowIso()};state.inventario.push(inv);state.caja.push({id:uid(),date:today(),type:'INGRESO',category:'Aporte del propietario',amount:'5000',accountId:cash,project:'APORTE - NO INGRESO OPERATIVO',nonOperating:true,createdAt:nowIso()});state.ventas.push({id:uid(),date:today(),partyId:cli.id,product:'Arroz',inventoryId:inv.id,quantity:'100',unit:'kg',unitPrice:'3.10',paid:'310',accountId:cash,total:310,createdAt:nowIso()});inv.quantity='750';state.caja.push({id:uid(),date:today(),type:'INGRESO',category:'Venta: Arroz',amount:'310',accountId:cash,project:'VENTA',createdAt:nowIso()});state.aplicaciones.push({id:uid(),date:today(),campaignId:camp.id,type:'FERTILIZANTE',product:'Fertilizante inicial',quantity:'2',unit:'sacos',cost:'350',createdAt:nowIso()});state.settings.demoLoaded=true;save('Datos de ejemplo cargados')}
+  function resetAll(){if(!confirm('Se borrarán todos los datos de la aplicación. ¿Continuar?'))return;if(!confirm('Última confirmación: esta acción no se puede deshacer sin un respaldo.'))return;state=baseState();unlocked=true;save('Datos reiniciados')}
+
+  let pinBuffer='';
+  function renderLock(){document.getElementById('app').innerHTML='';document.getElementById('lockRoot').innerHTML=`<section class="lock"><div class="lock-card"><div class="lock-logo">🌿</div><h1>${esc(state.settings.businessName)}</h1><p>Ingresa tu PIN para continuar</p><div class="pin-display">${[0,1,2,3].map(i=>`<span class="dot ${i<pinBuffer.length?'filled':''}"></span>`).join('')}</div><div class="keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" onclick="AG.key('${n}')">${n}</button>`).join('')}<button class="key" onclick="AG.key('C')">C</button><button class="key" onclick="AG.key('0')">0</button><button class="key" onclick="AG.key('⌫')">⌫</button></div></div></section>`;}
+  function key(k){if(k==='C')pinBuffer='';else if(k==='⌫')pinBuffer=pinBuffer.slice(0,-1);else if(pinBuffer.length<4)pinBuffer+=k;if(pinBuffer.length===4){if(pinBuffer===state.settings.pin){unlocked=true;pinBuffer='';render()}else{toast('PIN incorrecto');pinBuffer='';renderLock()}}else renderLock()}
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),2400)}
+
+  function isStandalone(){return window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}
+  async function installApp(){
+    if(isStandalone()){toast('AgroGestión ya está instalada');return;}
+    if(deferredInstallPrompt){deferredInstallPrompt.prompt();const choice=await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;if(choice&&choice.outcome==='accepted')toast('Instalación iniciada');render();return;}
+    toast('En Chrome abre el menú ⋮ y pulsa “Instalar aplicación” o “Agregar a pantalla principal”');
+  }
+  async function requestPersistence(silent=false){
+    try{if(!navigator.storage||!navigator.storage.persist){if(!silent)toast('Este navegador no ofrece almacenamiento persistente');return false;}storagePersistent=await navigator.storage.persisted();if(!storagePersistent)storagePersistent=await navigator.storage.persist();if(!silent)toast(storagePersistent?'Protección de datos activada':'El navegador no concedió protección permanente');render();return storagePersistent;}catch(e){if(!silent)toast('No se pudo comprobar la protección de datos');return false;}
+  }
+  async function registerServiceWorker(){
+    if(!('serviceWorker' in navigator))return;
+    try{const registration=await navigator.serviceWorker.register('./sw.js',{scope:'./'});registration.update().catch(()=>{});}catch(e){console.warn('Service Worker no disponible',e);}
+  }
+  async function init(){
+    state=await loadState();
+    unlocked=!state.settings.pin;
+    try{if(navigator.storage&&navigator.storage.persisted)storagePersistent=await navigator.storage.persisted();}catch(e){}
+    window.addEventListener('online',render);window.addEventListener('offline',render);
+    await registerServiceWorker();
+    render();
+  }
+  window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;render();});
+  window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;toast('AgroGestión instalada');render();});
+  window.AG={go,back,search,openForm,openSettlement,saveSettlement,closeModal,submit,cancel,copyBackup,markBackup,downloadBackup,shareBackup,restoreBackup,restoreBackupFile,saveSettings,savePin,editAccount,saveAccount,loadDemo,resetAll,key,installApp,requestPersistence};
+  init().catch(error=>{console.error(error);document.getElementById('app').innerHTML='<div class="loading"><div><strong>No se pudo abrir AgroGestión</strong><p>'+esc(error.message||error)+'</p></div></div>';});
+})();
+</script>
+</body>
+</html>
